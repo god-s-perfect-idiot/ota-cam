@@ -1,0 +1,12 @@
+node_modules/
+dist/
+data/
+server/.test-data/
+*.local
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+coverage/
+certs/

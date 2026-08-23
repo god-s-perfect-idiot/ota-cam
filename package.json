@@ -1,0 +1,30 @@
+{
+  "name": "ota-cam",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A digital disposable camera. Shoot from your phone, photos land straight in a host's Google Drive.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:server dev:web",
+    "dev:phone": "node scripts/dev-phone.mjs",
+    "dev:server": "npm run dev --workspace server",
+    "dev:web": "npm run dev --workspace web",
+    "tunnel": "node scripts/tunnel.mjs",
+    "build": "npm run build --workspace web && npm run build --workspace server",
+    "start": "npm run start --workspace server",
+    "typecheck": "npm run typecheck --workspace server && npm run typecheck --workspace web",
+    "test": "npm run test --workspace server && npm run test --workspace web"
+  },
+  "devDependencies": {
+    "localtunnel": "^2.0.2",
+    "npm-run-all": "^4.1.5"
+  },
+  "packageManager": "pnpm@10.13.1+sha512.37ebf1a5c7a30d5fabe0c5df44ee8da4c965ca0c5af3dbab28c3a1681b70a256218d05c81c9c0dcf767ef6b8551eb5b960042b9ed4300c59242336377e01cfad"
+}

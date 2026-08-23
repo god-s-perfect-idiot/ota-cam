@@ -1,0 +1,76 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-film-black: #0b0a09;
+  --color-film-shell: #17140f;
+  --color-film-amber: #ffb020;
+  --color-film-orange: #ff6b1a;
+  --color-film-cream: #f6ead6;
+  --font-stamp: 'Courier New', ui-monospace, monospace;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-film-black);
+    color: var(--color-film-cream);
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    /* Stops the viewfinder bouncing when a thumb drags on the shutter. */
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Respect the notch and home indicator on phones. */
+  #root {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@utility grain-overlay {
+  position: relative;
+}
+
+/* Fires once per shutter press to mimic a flash firing. */
+@keyframes flash-pop {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-flash {
+  animation: flash-pop 420ms ease-out forwards;
+}
+
+@keyframes advance-film {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-12px);
+  }
+}
+
+.animate-advance {
+  animation: advance-film 260ms ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-flash,
+  .animate-advance {
+    animation-duration: 1ms;
+  }
+}
