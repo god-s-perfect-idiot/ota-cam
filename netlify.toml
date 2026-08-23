@@ -4,7 +4,8 @@
 
 [build.environment]
   NODE_VERSION = "22"
-  NODE_ENV = "production"
+  # Do not set NODE_ENV=production here — npm skips devDependencies during install,
+  # so tsc/vite never land and the web build fails. Netlify sets production at runtime.
   # Ephemeral but writable on Netlify Functions; set in dashboard if you override.
   DATA_DIR = "/tmp/ota-cam-data"
   # Non-secrets you set in Netlify (PORT=8787, DATA_DIR=./data, …) also appear in
