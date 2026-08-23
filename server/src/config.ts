@@ -72,14 +72,21 @@ function load() {
   return {
     ...env,
     PUBLIC_BASE_URL: baseUrl,
-    dataDir: path.isAbsolute(env.DATA_DIR)
-      ? env.DATA_DIR
-      : path.resolve(repoRoot, env.DATA_DIR),
+    dataDir: resolveDataDir(env.DATA_DIR),
     oauthRedirectUri: `${baseUrl}/api/auth/google/callback`,
     isProduction: env.NODE_ENV === 'production',
     /** Google credentials are optional at boot so the app can explain itself in the UI. */
     googleConfigured: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
   };
+}
+
+/** Local dev writes under the repo; Netlify Functions only allow /tmp. */
+function resolveDataDir(dataDir: string): string {
+  if (path.isAbsolute(dataDir)) return dataDir;
+  if (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return '/tmp/ota-cam-data';
+  }
+  return path.resolve(repoRoot, dataDir);
 }
 
 export const config = load();
