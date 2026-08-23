@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build --workspace web && npm run build --workspace server"
+  command = "npm run build"
   publish = "web/dist"
 
 [build.environment]

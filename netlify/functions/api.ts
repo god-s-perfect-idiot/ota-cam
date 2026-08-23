@@ -1,9 +1,8 @@
-import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../../server/dist/app.js';
 
-let app: FastifyInstance | undefined;
+let app: Awaited<ReturnType<typeof buildApp>> | undefined;
 
-async function getApp(): Promise<FastifyInstance> {
+async function getApp() {
   if (!app) {
     app = await buildApp();
     await app.ready();
@@ -11,6 +10,7 @@ async function getApp(): Promise<FastifyInstance> {
   return app;
 }
 
+/** Netlify function — forwards requests into the same Fastify app used by `npm start`. */
 export default async (request: Request): Promise<Response> => {
   const fastify = await getApp();
   const url = new URL(request.url);
