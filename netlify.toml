@@ -16,6 +16,8 @@
 [functions]
   node_bundler = "esbuild"
   included_files = ["server/dist/**"]
+  # Runtime only (not build) — production logging + secure session cookies on HTTPS.
+  environment = { NODE_ENV = "production" }
 
 [functions.api]
   # Drive uploads can be slow; raise if your plan allows (max 26s on Pro).
