@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build --workspace web"
+  publish = "web/dist"
+
+[build.environment]
+  NODE_VERSION = "20.11.0"
+
+# Client-side routes (/c/:code, /admin, …). Hashed assets in web/dist are served first.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
