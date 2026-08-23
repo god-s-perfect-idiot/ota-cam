@@ -322,7 +322,7 @@ describe('admin surface', () => {
     const good = await app.inject({
       method: 'POST',
       url: '/api/admin/login',
-      payload: { password: 'test-password-123' },
+      payload: { password: 'vitest-only-admin-password' },
     });
     expect(good.statusCode).toBe(200);
 

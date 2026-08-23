@@ -3,7 +3,10 @@
   publish = "web/dist"
 
 [build.environment]
-  NODE_VERSION = "20.11.0"
+  NODE_VERSION = "22"
+  # Server code and tests aren't in the Netlify publish dir but are scanned from the
+  # repo. Omit them so vitest fixtures don't collide with env vars you set for the API.
+  SECRETS_SCAN_OMIT_PATHS = "server/**,web/src/**/*.test.ts,web/src/test/**,.env.example"
 
 # Client-side routes (/c/:code, /admin, …). Hashed assets in web/dist are served first.
 [[redirects]]

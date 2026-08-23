@@ -5,9 +5,9 @@ export default defineConfig({
     environment: 'node',
     env: {
       NODE_ENV: 'test',
-      ADMIN_PASSWORD: 'test-password-123',
-      ENCRYPTION_KEY: '11'.repeat(32),
-      SESSION_SECRET: 'session-secret-for-tests-only',
+      ADMIN_PASSWORD: 'vitest-only-admin-password',
+      ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000001',
+      SESSION_SECRET: 'vitest-only-session-secret-not-for-production',
       // Keep test artefacts out of the real data directory.
       DATA_DIR: './server/.test-data',
       PUBLIC_BASE_URL: 'http://localhost:8787',

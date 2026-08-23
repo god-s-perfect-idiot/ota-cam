@@ -11,7 +11,7 @@ import {
 
 describe('secret encryption', () => {
   it('round-trips a refresh token', () => {
-    const token = '1//0eXaMPle-refresh-token_value';
+    const token = 'vitest-only-fake-refresh-token-not-real';
     expect(decryptSecret(encryptSecret(token))).toBe(token);
   });
 

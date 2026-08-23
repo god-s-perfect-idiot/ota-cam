@@ -5,7 +5,7 @@
   "description": "A digital disposable camera. Shoot from your phone, photos land straight in a host's Google Drive.",
   "type": "module",
   "engines": {
-    "node": ">=20.11"
+    "node": ">=22.12.0"
   },
   "workspaces": [
     "server",
