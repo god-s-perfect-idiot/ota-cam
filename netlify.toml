@@ -1,13 +1,30 @@
 [build]
-  command = "npm run build --workspace web"
+  command = "npm run build --workspace web && npm run build --workspace server"
   publish = "web/dist"
 
 [build.environment]
   NODE_VERSION = "22"
+  NODE_ENV = "production"
+  # Ephemeral but writable on Netlify Functions; set in dashboard if you override.
+  DATA_DIR = "/tmp/ota-cam-data"
   # Non-secrets you set in Netlify (PORT=8787, DATA_DIR=./data, …) also appear in
   # README / vite defaults — omit them so the scanner doesn't treat docs as leaks.
-  SECRETS_SCAN_OMIT_KEYS = "PORT,HOST,DATA_DIR,PUBLIC_BASE_URL,MAX_UPLOAD_BYTES,DEFAULT_ROLL_PHOTO_CAP,UPLOAD_RATE_LIMIT_PER_MINUTE,NODE_VERSION"
+  SECRETS_SCAN_OMIT_KEYS = "PORT,HOST,DATA_DIR,PUBLIC_BASE_URL,MAX_UPLOAD_BYTES,DEFAULT_ROLL_PHOTO_CAP,UPLOAD_RATE_LIMIT_PER_MINUTE,NODE_VERSION,NODE_ENV"
   SECRETS_SCAN_OMIT_PATHS = "server/**,web/src/**/*.test.ts,web/src/test/**,.env.example"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["server/dist/**"]
+
+[functions.api]
+  # Drive uploads can be slow; raise if your plan allows (max 26s on Pro).
+  timeout = 26
+
+# API must be rewritten before the SPA catch-all or fetch("/api/…") gets index.html.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api"
+  status = 200
 
 # Client-side routes (/c/:code, /admin, …). Hashed assets in web/dist are served first.
 [[redirects]]

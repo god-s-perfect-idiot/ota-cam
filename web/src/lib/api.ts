@@ -56,7 +56,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (response.status === 204) return undefined as T;
 
   const text = await response.text();
-  const body = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+  let body: Record<string, unknown> = {};
+  if (text) {
+    try {
+      body = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      const looksLikeHtml = text.trimStart().startsWith('<');
+      throw new ApiError(
+        looksLikeHtml
+          ? 'API is unavailable — the server returned a web page instead of JSON. Check Netlify function routing and env vars.'
+          : 'Invalid response from the server.',
+        response.status,
+      );
+    }
+  }
   if (!response.ok) {
     throw new ApiError(
       typeof body.message === 'string' ? body.message : `Request failed (${response.status})`,
