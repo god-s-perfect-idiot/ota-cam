@@ -67,7 +67,7 @@ function load() {
   }
 
   const env = parsed.data;
-  const baseUrl = env.PUBLIC_BASE_URL.replace(/\/+$/, '');
+  const baseUrl = resolvePublicBaseUrl(env.PUBLIC_BASE_URL);
 
   return {
     ...env,
@@ -87,6 +87,18 @@ function resolveDataDir(dataDir: string): string {
     return '/tmp/ota-cam-data';
   }
   return path.resolve(repoRoot, dataDir);
+}
+
+/**
+ * Google OAuth redirect_uri is derived from this value. On Netlify, `URL` is the
+ * site's canonical HTTPS origin — use it so a copied localhost .env doesn't break OAuth.
+ */
+function resolvePublicBaseUrl(configured: string): string {
+  const netlifyUrl = process.env.URL?.replace(/\/+$/, '');
+  if (netlifyUrl && (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME)) {
+    return netlifyUrl;
+  }
+  return configured.replace(/\/+$/, '');
 }
 
 export const config = load();
