@@ -4,8 +4,9 @@
 
 [build.environment]
   NODE_VERSION = "22"
-  # Server code and tests aren't in the Netlify publish dir but are scanned from the
-  # repo. Omit them so vitest fixtures don't collide with env vars you set for the API.
+  # Non-secrets you set in Netlify (PORT=8787, DATA_DIR=./data, …) also appear in
+  # README / vite defaults — omit them so the scanner doesn't treat docs as leaks.
+  SECRETS_SCAN_OMIT_KEYS = "PORT,HOST,DATA_DIR,PUBLIC_BASE_URL,MAX_UPLOAD_BYTES,DEFAULT_ROLL_PHOTO_CAP,UPLOAD_RATE_LIMIT_PER_MINUTE,NODE_VERSION"
   SECRETS_SCAN_OMIT_PATHS = "server/**,web/src/**/*.test.ts,web/src/test/**,.env.example"
 
 # Client-side routes (/c/:code, /admin, …). Hashed assets in web/dist are served first.
