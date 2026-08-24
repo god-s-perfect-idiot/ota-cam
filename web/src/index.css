@@ -3,6 +3,10 @@
 @theme {
   --color-film-black: #0b0a09;
   --color-film-shell: #17140f;
+  --color-film-body: #1c1812;
+  --color-film-leather: #2a2318;
+  --color-film-metal: #3d3830;
+  --color-film-metal-light: #5a5448;
   --color-film-amber: #ffb020;
   --color-film-orange: #ff6b1a;
   --color-film-cream: #f6ead6;
@@ -22,23 +26,80 @@
     color: var(--color-film-cream);
     font-family:
       ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    /* Stops the viewfinder bouncing when a thumb drags on the shutter. */
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Respect the notch and home indicator on phones. */
   #root {
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
-@utility grain-overlay {
-  position: relative;
+/* ── Vintage camera textures ── */
+
+@utility texture-leather {
+  background-color: var(--color-film-leather);
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+    linear-gradient(175deg, #322a1e 0%, #1e1810 40%, #2a2318 100%);
 }
 
-/* Fires once per shutter press to mimic a flash firing. */
+@utility texture-metal {
+  background-color: var(--color-film-metal);
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 1px,
+      rgba(255, 255, 255, 0.02) 1px,
+      rgba(255, 255, 255, 0.02) 2px
+    ),
+    linear-gradient(180deg, #4a4540 0%, #2e2a24 50%, #3d3830 100%);
+}
+
+@utility texture-body {
+  background-color: var(--color-film-body);
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #221e18 0%, #1c1812 30%, #14110e 100%);
+}
+
+@utility grain-overlay {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.12;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    mix-blend-mode: overlay;
+  }
+}
+
+@utility viewfinder-vignette {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 55%,
+      rgba(0, 0, 0, 0.35) 85%,
+      rgba(0, 0, 0, 0.65) 100%
+    );
+  }
+}
+
+/* ── Animations ── */
+
 @keyframes flash-pop {
   0% {
     opacity: 0;
@@ -68,9 +129,53 @@
   animation: advance-film 260ms ease-in-out;
 }
 
+@keyframes dial-settle {
+  0% {
+    transform: rotate(var(--dial-from, 0deg));
+  }
+  60% {
+    transform: rotate(calc(var(--dial-to, 45deg) + 8deg));
+  }
+  100% {
+    transform: rotate(var(--dial-to, 45deg));
+  }
+}
+
+@keyframes digit-roll-out {
+  0% {
+    transform: rotateX(0deg) translateZ(0.5rem);
+    opacity: 1;
+  }
+  100% {
+    transform: rotateX(-88deg) translateZ(0.5rem);
+    opacity: 0;
+  }
+}
+
+@keyframes digit-roll-in {
+  0% {
+    transform: rotateX(88deg) translateZ(0.5rem);
+    opacity: 0;
+  }
+  100% {
+    transform: rotateX(0deg) translateZ(0.5rem);
+    opacity: 1;
+  }
+}
+
+.animate-digit-roll-out {
+  animation: digit-roll-out 420ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-digit-roll-in {
+  animation: digit-roll-in 420ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-flash,
-  .animate-advance {
+  .animate-advance,
+  .animate-digit-roll-out,
+  .animate-digit-roll-in {
     animation-duration: 1ms;
   }
 }

@@ -5,6 +5,9 @@ import { captureFrame } from '../lib/capture.js';
 import { uploadQueue, type QueueStats } from '../lib/uploadQueue.js';
 import { useCamera } from '../lib/useCamera.js';
 import { ShutterButton } from '../components/ShutterButton.js';
+import { FlipCameraButton } from '../components/FlipCameraButton.js';
+import { VintageDial } from '../components/VintageDial.js';
+import { FilmCounter } from '../components/FilmCounter.js';
 import { QueueIndicator } from '../components/QueueIndicator.js';
 import { ShooterNamePrompt } from '../components/ShooterNamePrompt.js';
 import { Screen, Spinner } from '../components/Layout.js';
@@ -22,7 +25,6 @@ export function CameraPage() {
   const [flashing, setFlashing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [dateStamp, setDateStamp] = useState(true);
   const [filmLook, setFilmLook] = useState(true);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -71,22 +73,19 @@ export function CameraPage() {
 
     setBusy(true);
     setFlashing(true);
-    // Restarting the animation needs the class removed for a frame.
     setTimeout(() => setFlashing(false), 430);
 
     try {
-      const blob = await captureFrame(video, { dateStamp, filmLook });
+      const blob = await captureFrame(video, { dateStamp: true, filmLook });
       await uploadQueue.enqueue(blob, shooter);
       if (navigator.vibrate) navigator.vibrate(18);
     } catch (err) {
       flashNotice(err instanceof Error ? err.message : 'Could not take the photo.');
     } finally {
-      // Brief lockout so a double tap does not fire two frames of the same moment.
       setTimeout(() => setBusy(false), 350);
     }
-  }, [busy, camera, dateStamp, filmLook, flashNotice, shooter]);
+  }, [busy, camera, filmLook, flashNotice, shooter]);
 
-  // Volume-style shortcut: space or enter fires the shutter on desktop.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.code === 'Space' || event.code === 'Enter') {
@@ -154,126 +153,155 @@ export function CameraPage() {
   }
 
   return (
-    <div className="relative flex h-full w-full flex-col bg-film-black">
-      <div className="relative flex-1 overflow-hidden">
-        <video
-          ref={camera.videoRef}
-          className="h-full w-full object-cover"
-          playsInline
-          muted
-          autoPlay
-        />
-
-        {camera.error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-film-black/95 p-6">
-            <div className="max-w-sm text-center">
-              <h2 className="text-lg font-semibold text-film-amber">{camera.error.title}</h2>
-              <p className="mt-2 text-sm text-film-cream/75">{camera.error.detail}</p>
-              {camera.error.recoverable && (
-                <button
-                  type="button"
-                  onClick={camera.retry}
-                  className="mt-5 rounded-full bg-film-amber px-6 py-2.5 text-sm font-semibold text-film-black"
-                >
-                  Retry
-                </button>
-              )}
+    <div className="texture-body relative flex h-full w-full flex-col">
+      {/* Top metal strip — brand plate */}
+      <div className="texture-metal relative z-10 shrink-0 px-4 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            {/* Viewfinder bump */}
+            <div className="h-[18px] w-[28px] rounded-sm bg-gradient-to-b from-[#0a0806] to-[#1a1612] shadow-[inset_0_1px_3px_rgba(0,0,0,0.8)]" />
+            <div>
+              <p className="font-stamp text-[10px] uppercase tracking-[0.25em] text-film-cream/50">
+                ota-cam
+              </p>
+              <p className="font-stamp text-xs tracking-wide text-film-amber">{roll.name}</p>
             </div>
-          </div>
-        )}
-
-        {!camera.error && !camera.ready && (
-          <div className="absolute inset-0 flex items-center justify-center bg-film-black/80">
-            <Spinner label="Opening the shutter…" />
-          </div>
-        )}
-
-        {/* Viewfinder framing marks, purely cosmetic. */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-6 rounded-sm border border-white/15" />
-          <div className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25" />
-        </div>
-
-        {flashing && (
-          <div className="animate-flash pointer-events-none absolute inset-0 bg-white" />
-        )}
-
-        <div className="absolute left-0 right-0 top-0 flex items-start justify-between p-4">
-          <div className="rounded-full bg-black/45 px-3 py-1.5 backdrop-blur-sm">
-            <p className="font-stamp text-xs tracking-wide text-film-amber">{roll.name}</p>
           </div>
           <QueueIndicator stats={stats} onRetry={() => void uploadQueue.retryFailed()} />
         </div>
-
-        {notice && (
-          <div className="absolute bottom-4 left-4 right-4 rounded-xl bg-black/70 p-3 text-center text-sm backdrop-blur-sm">
-            {notice}
-          </div>
-        )}
       </div>
 
-      <div className="shrink-0 bg-film-shell px-6 pb-4 pt-5">
-        <div className="mb-4 flex items-center justify-center gap-2">
-          <Toggle active={filmLook} onClick={() => setFilmLook((v) => !v)} label="Film look" />
-          <Toggle active={dateStamp} onClick={() => setDateStamp((v) => !v)} label="Date stamp" />
-          {camera.torchAvailable && (
-            <Toggle
-              active={camera.torchOn}
-              onClick={() => void camera.toggleTorch()}
-              label="Flash"
+      {/* Viewfinder housing */}
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden px-3 pt-3">
+        {/* Outer bezel — locked to camera sensor aspect ratio */}
+        <div
+          className="texture-metal relative flex w-full max-h-full flex-col rounded-lg p-[3px] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.5)]"
+          style={
+            camera.videoSize
+              ? {
+                  aspectRatio: `${camera.videoSize.width} / ${camera.videoSize.height}`,
+                }
+              : { flex: 1 }
+          }
+        >
+          {/* Inner recess */}
+          <div className="relative flex flex-1 overflow-hidden rounded-[5px] bg-[#0a0806] shadow-[inset_0_3px_10px_rgba(0,0,0,0.8)]">
+            <video
+              ref={camera.videoRef}
+              className="h-full w-full object-contain"
+              playsInline
+              muted
+              autoPlay
             />
-          )}
+
+            {camera.error && (
+              <div className="absolute inset-0 flex items-center justify-center bg-film-black/95 p-6">
+                <div className="max-w-sm text-center">
+                  <h2 className="text-lg font-semibold text-film-amber">{camera.error.title}</h2>
+                  <p className="mt-2 text-sm text-film-cream/75">{camera.error.detail}</p>
+                  {camera.error.recoverable && (
+                    <button
+                      type="button"
+                      onClick={camera.retry}
+                      className="mt-5 rounded-full bg-film-amber px-6 py-2.5 text-sm font-semibold text-film-black"
+                    >
+                      Retry
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!camera.error && !camera.ready && (
+              <div className="absolute inset-0 flex items-center justify-center bg-film-black/80">
+                <Spinner label="Opening the shutter…" />
+              </div>
+            )}
+
+            {/* Viewfinder overlays */}
+            <div className="grain-overlay viewfinder-vignette pointer-events-none absolute inset-0">
+              {/* Corner brackets */}
+              <div className="absolute inset-4">
+                <span className="absolute left-0 top-0 h-4 w-4 border-l-2 border-t-2 border-film-cream/20" />
+                <span className="absolute right-0 top-0 h-4 w-4 border-r-2 border-t-2 border-film-cream/20" />
+                <span className="absolute bottom-0 left-0 h-4 w-4 border-b-2 border-l-2 border-film-cream/20" />
+                <span className="absolute bottom-0 right-0 h-4 w-4 border-b-2 border-r-2 border-film-cream/20" />
+              </div>
+
+              {/* Center focus circle */}
+              <div className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-film-cream/15" />
+              <div className="absolute left-1/2 top-1/2 h-[3px] w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-film-cream/20" />
+
+              {/* Distance scale marks (left edge) */}
+              <div className="absolute bottom-6 left-3 flex flex-col gap-[6px]">
+                {[1, 2, 3].map((n) => (
+                  <span
+                    key={n}
+                    className="block h-[1px] bg-film-cream/15"
+                    style={{ width: `${6 + n * 3}px` }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {flashing && (
+              <div className="animate-flash pointer-events-none absolute inset-0 bg-white" />
+            )}
+
+            {notice && (
+              <div className="absolute bottom-3 left-3 right-3 rounded-sm bg-black/75 p-2.5 text-center font-stamp text-xs backdrop-blur-sm">
+                {notice}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={camera.flipCamera}
-            className="h-12 w-12 rounded-full border border-white/15 text-lg text-film-cream/80 active:scale-95"
-            aria-label="Switch camera"
-          >
-            ⟳
-          </button>
+        {/* Lens ring label below viewfinder */}
+        <div className="mt-1.5 flex items-center justify-center gap-3 pb-1">
+          <span className="font-stamp text-[8px] uppercase tracking-[0.3em] text-film-cream/25">
+            35mm
+          </span>
+          <span className="h-[3px] w-[3px] rounded-full bg-film-cream/15" />
+          <span className="font-stamp text-[8px] uppercase tracking-[0.3em] text-film-cream/25">
+            f/2.8
+          </span>
+        </div>
+      </div>
+
+      {/* Control panel — leather texture */}
+      <div className="texture-leather relative shrink-0 px-5 pb-5 pt-4 shadow-[0_-4px_16px_rgba(0,0,0,0.4)]">
+        {/* Stitching detail along top edge */}
+        <div className="absolute left-4 right-4 top-2 flex justify-between">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <span key={i} className="h-[3px] w-[3px] rounded-full bg-film-cream/[0.06]" />
+          ))}
+        </div>
+
+        {/* Shutter row */}
+        <div className="flex items-end justify-between px-2 pt-2">
+          <div className="flex items-end gap-4">
+            <FlipCameraButton onClick={camera.flipCamera} />
+            {camera.torchAvailable && (
+              <VintageDial
+                label="flash"
+                active={camera.torchOn}
+                onClick={() => void camera.toggleTorch()}
+              />
+            )}
+          </div>
 
           <ShutterButton disabled={!camera.ready || busy} onPress={() => void takePhoto()} />
 
-          <div className="w-12 text-right">
-            <p className="font-stamp text-2xl leading-none text-film-amber">
-              {String(stats?.shot ?? 0).padStart(2, '0')}
-            </p>
-            <p className="mt-1 text-[10px] uppercase tracking-widest text-film-cream/45">shot</p>
+          <div className="flex flex-col items-center gap-1">
+            <VintageDial
+              label="vintage"
+              active={filmLook}
+              onClick={() => setFilmLook((v) => !v)}
+            />
+            <FilmCounter count={stats?.shot ?? 0} />
           </div>
         </div>
-
-        <p className="mt-4 text-center text-[11px] leading-relaxed text-film-cream/40">
-          No previews, no deleting. You'll see them when {roll.name} gets developed.
-        </p>
       </div>
     </div>
-  );
-}
-
-function Toggle({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`rounded-full px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider transition ${
-        active
-          ? 'bg-film-amber text-film-black'
-          : 'border border-white/15 text-film-cream/55'
-      }`}
-    >
-      {label}
-    </button>
   );
 }

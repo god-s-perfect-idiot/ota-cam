@@ -64,11 +64,18 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(cameraRoutes);
 
   if (fs.existsSync(webDist)) {
-    await app.register(fastifyStatic, { root: webDist, wildcard: false });
+    // wildcard must stay true so nested build output (e.g. /assets/*.js) is served.
+    // With wildcard: false only root-level files resolve and missing paths get index.html,
+    // which breaks module scripts (browser sees text/html instead of JavaScript).
+    await app.register(fastifyStatic, { root: webDist });
     // Client-side routing: anything that is not an API call or a real asset
     // falls through to the SPA shell.
     app.setNotFoundHandler(async (request, reply) => {
       if (request.method !== 'GET' || request.url.startsWith('/api/')) {
+        return reply.code(404).send({ error: 'not_found' });
+      }
+      const pathOnly = request.url.split('?')[0] ?? request.url;
+      if (pathOnly.startsWith('/assets/') || /\.[a-z0-9]+$/i.test(pathOnly)) {
         return reply.code(404).send({ error: 'not_found' });
       }
       return reply.type('text/html').sendFile('index.html');

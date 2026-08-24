@@ -5,10 +5,6 @@ interface Props {
   onRetry: () => void;
 }
 
-/**
- * Deliberately reports only counts and sync state. Showing thumbnails here
- * would undo the whole point of a disposable camera.
- */
 export function QueueIndicator({ stats, onRetry }: Props) {
   if (!stats) return null;
 
@@ -19,9 +15,9 @@ export function QueueIndicator({ stats, onRetry }: Props) {
       <button
         type="button"
         onClick={onRetry}
-        className="rounded-full bg-red-500/85 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
+        className="rounded-sm bg-red-600/90 px-2.5 py-1 font-stamp text-[10px] uppercase tracking-wider text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)]"
       >
-        {failed} stuck · tap to retry
+        {failed} stuck · retry
       </button>
     );
   }
@@ -37,13 +33,13 @@ export function QueueIndicator({ stats, onRetry }: Props) {
   if (pending > 0) {
     return (
       <Pill tone="busy">
-        <span className="mr-1.5 inline-block h-2 w-2 animate-pulse rounded-full bg-film-amber" />
+        <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-film-amber" />
         saving {pending}
       </Pill>
     );
   }
 
-  return <Pill tone="ok">saved to drive</Pill>;
+  return <Pill tone="ok">saved</Pill>;
 }
 
 function Pill({
@@ -60,7 +56,7 @@ function Pill({
   } as const;
   return (
     <span
-      className={`flex items-center rounded-full bg-black/45 px-3 py-1.5 text-xs backdrop-blur-sm ${tones[tone]}`}
+      className={`flex items-center rounded-sm bg-black/50 px-2.5 py-1 font-stamp text-[10px] uppercase tracking-wider shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)] ${tones[tone]}`}
     >
       {children}
     </span>
