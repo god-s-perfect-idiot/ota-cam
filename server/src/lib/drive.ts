@@ -1,9 +1,18 @@
+import { createRequire } from 'node:module';
 import type { Readable } from 'node:stream';
-import { google } from 'googleapis';
 import type { drive_v3 } from 'googleapis';
 import { config } from '../config.js';
 import { decryptSecret } from './crypto.js';
 import { store } from './store.js';
+
+/**
+ * Lazy-load googleapis — it is huge and must not run on every cold start
+ * (e.g. /api/admin/status), or Vercel hobby functions hit 504 timeouts.
+ */
+const require = createRequire(import.meta.url);
+function google() {
+  return (require('googleapis') as typeof import('googleapis')).google;
+}
 
 /**
  * `drive.file` is the narrowest scope that permits uploads: it grants access
@@ -31,7 +40,7 @@ export class DriveAuthExpiredError extends Error {
   }
 }
 
-type OAuth2Client = InstanceType<typeof google.auth.OAuth2>;
+type OAuth2Client = InstanceType<typeof import('googleapis').google.auth.OAuth2>;
 
 function newOAuthClient(): OAuth2Client {
   if (!config.googleConfigured) {
@@ -39,7 +48,10 @@ function newOAuthClient(): OAuth2Client {
       'GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are not set. See README.md for setup.',
     );
   }
-  return new google.auth.OAuth2(
+  const Auth = google().auth as unknown as {
+    OAuth2: new (clientId?: string, clientSecret?: string, redirectUri?: string) => OAuth2Client;
+  };
+  return new Auth.OAuth2(
     config.GOOGLE_CLIENT_ID,
     config.GOOGLE_CLIENT_SECRET,
     config.oauthRedirectUri,
@@ -71,7 +83,7 @@ export async function exchangeCodeForHost(code: string): Promise<{
     );
   }
   client.setCredentials(tokens);
-  const { data } = await google.oauth2({ version: 'v2', auth: client }).userinfo.get();
+  const { data } = await google().oauth2({ version: 'v2', auth: client }).userinfo.get();
   return { email: data.email ?? 'unknown', refreshToken: tokens.refresh_token };
 }
 
@@ -100,7 +112,7 @@ function driveClient(): drive_v3.Drive {
     throw new DriveAuthExpiredError();
   }
   auth.setCredentials({ refresh_token: refreshToken });
-  const drive = google.drive({ version: 'v3', auth });
+  const drive = google().drive({ version: 'v3', auth });
   cached = { refreshTokenEnc: host.refreshTokenEnc, drive };
   return drive;
 }

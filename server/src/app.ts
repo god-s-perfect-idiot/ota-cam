@@ -72,10 +72,12 @@ export async function buildApp(): Promise<FastifyInstance> {
     // Client-side routing: anything that is not an API call or a real asset
     // falls through to the SPA shell.
     app.setNotFoundHandler(async (request, reply) => {
-      if (request.method !== 'GET' || request.url.startsWith('/api/')) {
+      const pathOnly = (request.url.split('?')[0] ?? request.url);
+      // `/api` and `/api/...` must never fall through to index.html (Vercel
+      // rewrites used to strip the path to bare `/api`, which hung on sendFile).
+      if (request.method !== 'GET' || pathOnly === '/api' || pathOnly.startsWith('/api/')) {
         return reply.code(404).send({ error: 'not_found' });
       }
-      const pathOnly = request.url.split('?')[0] ?? request.url;
       if (pathOnly.startsWith('/assets/') || /\.[a-z0-9]+$/i.test(pathOnly)) {
         return reply.code(404).send({ error: 'not_found' });
       }
@@ -84,6 +86,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   } else {
     app.log.warn(
       'web/dist not found. Run `npm run build` for the bundled UI, or use `npm run dev`.',
+    );
+    app.setNotFoundHandler(async (_request, reply) =>
+      reply.code(404).send({ error: 'not_found' }),
     );
   }
 
