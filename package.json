@@ -17,7 +17,7 @@
     "dev:server": "npm run dev --workspace server",
     "dev:web": "npm run dev --workspace web",
     "tunnel": "node scripts/tunnel.mjs",
-    "build": "npm run build --workspace web && npm run build --workspace server",
+    "build": "npm run build --workspace web && npm run build --workspace server && node scripts/sync-web-dist.mjs",
     "start": "npm run start --workspace server",
     "typecheck": "npm run typecheck --workspace server && npm run typecheck --workspace web",
     "test": "npm run test --workspace server && npm run test --workspace web"
