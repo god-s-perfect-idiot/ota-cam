@@ -5,10 +5,12 @@
   "buildCommand": "node scripts/vercel-build.mjs",
   "outputDirectory": "public",
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/api", "destination": "/api?__path=/api" },
+    { "source": "/api/(.*)", "destination": "/api?__path=/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "functions": {
-    "api/[...path].ts": {
+    "api/index.ts": {
       "maxDuration": 60,
       "includeFiles": "server/dist/**"
     }
