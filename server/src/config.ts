@@ -120,5 +120,22 @@ function resolvePublicBaseUrl(configured: string): string {
   return cleaned;
 }
 
-export const config = load();
-export type Config = typeof config;
+export type Config = ReturnType<typeof load>;
+
+/**
+ * Lazy so a bad/missing env on Vercel/Netlify doesn't crash the function
+ * module at import time (FUNCTION_INVOCATION_FAILED). Errors surface as
+ * JSON 500s from the serverless handler instead.
+ */
+let cached: Config | undefined;
+
+function getConfig(): Config {
+  if (!cached) cached = load();
+  return cached;
+}
+
+export const config: Config = new Proxy({} as Config, {
+  get(_target, prop) {
+    return getConfig()[prop as keyof Config];
+  },
+});

@@ -1,16 +1,8 @@
-import { buildApp } from './app.js';
-
 type InjectMethod = 'DELETE' | 'GET' | 'HEAD' | 'PATCH' | 'POST' | 'PUT' | 'OPTIONS';
 
-let app: Awaited<ReturnType<typeof buildApp>> | undefined;
+type App = Awaited<ReturnType<typeof import('./app.js').buildApp>>;
 
-async function getApp() {
-  if (!app) {
-    app = await buildApp();
-    await app.ready();
-  }
-  return app;
-}
+let app: App | undefined;
 
 /**
  * Web-standard handler used by Netlify and Vercel function entrypoints.
@@ -18,7 +10,14 @@ async function getApp() {
  */
 export default async (request: globalThis.Request): Promise<globalThis.Response> => {
   try {
-    const fastify = await getApp();
+    // Dynamic import so config validation errors are catchable.
+    const { buildApp } = await import('./app.js');
+
+    if (!app) {
+      app = await buildApp();
+      await app.ready();
+    }
+
     const url = new URL(request.url);
 
     const headers: Record<string, string> = {};
@@ -31,7 +30,7 @@ export default async (request: globalThis.Request): Promise<globalThis.Response>
       payload = Buffer.from(await request.arrayBuffer());
     }
 
-    const result = await fastify.inject({
+    const result = await app.inject({
       method: request.method.toUpperCase() as InjectMethod,
       url: `${url.pathname}${url.search}`,
       headers,

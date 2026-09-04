@@ -1,12 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "fastify",
+  "framework": null,
   "installCommand": "npm install --production=false",
   "buildCommand": "npm run build",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api" }
+  ],
   "functions": {
-    "index.ts": {
+    "api/index.ts": {
       "maxDuration": 60,
-      "includeFiles": "web/dist/**"
+      "includeFiles": "{server/dist/**,web/dist/**}"
     }
   }
 }
