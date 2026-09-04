@@ -121,12 +121,31 @@ export function invalidateDriveCache(): void {
   cached = null;
 }
 
+function driveErrorMessage(err: unknown): string {
+  if (!err || typeof err !== 'object') return String(err);
+  const withResponse = err as {
+    message?: string;
+    response?: { data?: { error?: { message?: string; errors?: { message?: string }[] } } };
+  };
+  return (
+    withResponse.response?.data?.error?.message ||
+    withResponse.response?.data?.error?.errors?.[0]?.message ||
+    withResponse.message ||
+    String(err)
+  );
+}
+
+function isNotFoundError(err: unknown): boolean {
+  const message = driveErrorMessage(err);
+  return /not found|file not found|404/i.test(message);
+}
+
 function rethrowAuthErrors(err: unknown): never {
-  const message = err instanceof Error ? err.message : String(err);
+  const message = driveErrorMessage(err);
   if (/invalid_grant|invalid_token|unauthorized|Token has been expired/i.test(message)) {
     throw new DriveAuthExpiredError();
   }
-  throw err;
+  throw err instanceof Error ? err : new Error(message);
 }
 
 async function ensureRootFolder(): Promise<string> {
@@ -147,26 +166,44 @@ async function ensureRootFolder(): Promise<string> {
   return data.id;
 }
 
+async function createRollFolderOnce(name: string, parent: string): Promise<{ id: string; url: string }> {
+  const drive = driveClient();
+  const { data } = await drive.files.create({
+    requestBody: {
+      name,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [parent],
+    },
+    fields: 'id, webViewLink',
+  });
+  if (!data.id) throw new Error('Drive did not return an id for the roll folder');
+  return {
+    id: data.id,
+    url: data.webViewLink ?? `https://drive.google.com/drive/folders/${data.id}`,
+  };
+}
+
 export async function createRollFolder(
   name: string,
 ): Promise<{ id: string; url: string }> {
   try {
     const parent = await ensureRootFolder();
-    const drive = driveClient();
-    const { data } = await drive.files.create({
-      requestBody: {
-        name,
-        mimeType: 'application/vnd.google-apps.folder',
-        parents: [parent],
-      },
-      fields: 'id, webViewLink',
-    });
-    if (!data.id) throw new Error('Drive did not return an id for the roll folder');
-    return {
-      id: data.id,
-      url: data.webViewLink ?? `https://drive.google.com/drive/folders/${data.id}`,
-    };
+    return await createRollFolderOnce(name, parent);
   } catch (err) {
+    // Stale rootFolderId (common after reconnect / ephemeral serverless storage).
+    if (isNotFoundError(err)) {
+      const host = store.getHost();
+      if (host?.rootFolderId) {
+        await store.setHost({ ...host, rootFolderId: null });
+        invalidateDriveCache();
+        try {
+          const parent = await ensureRootFolder();
+          return await createRollFolderOnce(name, parent);
+        } catch (retryErr) {
+          rethrowAuthErrors(retryErr);
+        }
+      }
+    }
     rethrowAuthErrors(err);
   }
 }

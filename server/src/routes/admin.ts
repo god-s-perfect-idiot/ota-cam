@@ -23,13 +23,20 @@ import { store } from '../lib/store.js';
 const createRollSchema = z.object({
   name: z.string().trim().min(1).max(80),
   expiresInHours: z.coerce.number().int().min(1).max(24 * 30).nullish(),
-  photoCap: z.coerce.number().int().min(1).max(10_000).nullish(),
+  // null / omitted / 0 = unlimited exposures
+  photoCap: z.preprocess(
+    (value) => (value === '' || value === undefined ? null : value),
+    z.union([z.coerce.number().int().min(0).max(10_000), z.null()]).optional(),
+  ),
 });
 
 const updateRollSchema = z.object({
   closed: z.boolean().optional(),
   name: z.string().trim().min(1).max(80).optional(),
-  photoCap: z.coerce.number().int().min(1).max(10_000).optional(),
+  photoCap: z.preprocess(
+    (value) => (value === '' || value === undefined ? undefined : value),
+    z.union([z.coerce.number().int().min(0).max(10_000), z.null()]).optional(),
+  ),
 });
 
 export async function adminRoutes(app: FastifyInstance): Promise<void> {
@@ -93,7 +100,10 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
           ? new Date(Date.now() + expiresInHours * 3_600_000).toISOString()
           : null,
         closed: false,
-        photoCap: photoCap ?? config.DEFAULT_ROLL_PHOTO_CAP,
+        photoCap:
+          photoCap === null || photoCap === 0
+            ? null
+            : (photoCap ?? config.DEFAULT_ROLL_PHOTO_CAP),
         photoCount: 0,
       });
       return reply.code(201).send(adminRollView(roll, config.PUBLIC_BASE_URL));
@@ -102,9 +112,24 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         return reply.code(409).send({ error: 'drive_unavailable', message: err.message });
       }
       request.log.error({ err }, 'failed to create roll folder');
-      return reply
-        .code(502)
-        .send({ error: 'drive_error', message: 'Could not create the Drive folder.' });
+      const detail =
+        err && typeof err === 'object' && 'response' in err
+          ? (
+              err as {
+                response?: { data?: { error?: { message?: string } } };
+                message?: string;
+              }
+            ).response?.data?.error?.message ||
+            (err as { message?: string }).message
+          : err instanceof Error
+            ? err.message
+            : undefined;
+      return reply.code(502).send({
+        error: 'drive_error',
+        message: detail
+          ? `Could not create the Drive folder: ${detail}`
+          : 'Could not create the Drive folder.',
+      });
     }
   });
 

@@ -168,7 +168,7 @@ function NewRollForm({
 }) {
   const [name, setName] = useState('');
   const [hours, setHours] = useState('');
-  const [cap, setCap] = useState(String(defaultCap));
+  const [cap, setCap] = useState('');
   const [saving, setSaving] = useState(false);
 
   return (
@@ -183,11 +183,12 @@ function NewRollForm({
             .createRoll({
               name,
               expiresInHours: hours ? Number(hours) : null,
-              photoCap: cap ? Number(cap) : null,
+              photoCap: cap.trim() ? Number(cap) : null,
             })
             .then(() => {
               setName('');
               setHours('');
+              setCap('');
               return onCreated();
             })
             .catch((err: unknown) =>
@@ -218,13 +219,14 @@ function NewRollForm({
               className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 outline-none focus:border-film-amber"
             />
           </Field>
-          <Field label="Photo cap" hint="protects your Drive">
+          <Field label="Photo cap" hint="blank = uncapped">
             <input
               value={cap}
               onChange={(event) => setCap(event.target.value)}
               type="number"
               min={1}
               max={10000}
+              placeholder={String(defaultCap)}
               className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 outline-none focus:border-film-amber"
             />
           </Field>
@@ -313,7 +315,9 @@ function RollCard({
         <div className="min-w-0">
           <h3 className="truncate font-medium">{roll.name}</h3>
           <p className="mt-1 text-xs text-film-cream/50">
-            {roll.photoCount} of {roll.photoCap} exposures · {statusLabel(roll)}
+            {roll.photoCap === null
+              ? `${roll.photoCount} exposures · uncapped · ${statusLabel(roll)}`
+              : `${roll.photoCount} of ${roll.photoCap} exposures · ${statusLabel(roll)}`}
           </p>
         </div>
         <span className="font-stamp shrink-0 text-lg text-film-amber">{roll.code}</span>

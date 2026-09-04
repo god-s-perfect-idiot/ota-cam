@@ -33,9 +33,32 @@ function restoreApiPath(req: IncomingMessage): void {
   req.url = rest ? `${suffix}?${rest}` : suffix;
 }
 
+function waitForResponse(res: ServerResponse): Promise<void> {
+  if (res.writableEnded || res.headersSent) {
+    // Already finishing — still wait for the socket to drain when possible.
+  }
+  return new Promise((resolve, reject) => {
+    const done = () => {
+      res.off('finish', done);
+      res.off('close', done);
+      res.off('error', onError);
+      resolve();
+    };
+    const onError = (err: Error) => {
+      res.off('finish', done);
+      res.off('close', done);
+      res.off('error', onError);
+      reject(err);
+    };
+    res.on('finish', done);
+    res.on('close', done);
+    res.on('error', onError);
+  });
+}
+
 /**
- * Vercel Node handler — pipes the real HTTP request into Fastify.
- * Prefer this over `inject()` so multipart uploads and URLs behave correctly.
+ * Vercel Node handler — pipes the real HTTP request into Fastify and waits
+ * until the response is fully sent (Drive calls can take several seconds).
  */
 export default async function handler(
   req: IncomingMessage,
@@ -44,7 +67,9 @@ export default async function handler(
   try {
     restoreApiPath(req);
     const fastify = await getApp();
+    const finished = waitForResponse(res);
     fastify.server.emit('request', req, res);
+    await finished;
   } catch (err) {
     console.error('vercel handler error:', err);
     if (!res.headersSent) {

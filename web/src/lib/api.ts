@@ -6,14 +6,16 @@ export interface PublicRoll {
   status: RollStatus;
   acceptingPhotos: boolean;
   photoCount: number;
-  remaining: number;
+  /** null = unlimited */
+  remaining: number | null;
+  /** null = unlimited */
+  photoCap: number | null;
   expiresAt: string | null;
 }
 
 export interface AdminRoll extends PublicRoll {
   id: string;
   createdAt: string;
-  photoCap: number;
   closed: boolean;
   driveFolderUrl: string;
   shareUrl: string;
@@ -96,7 +98,7 @@ export const api = {
   createRoll: (input: { name: string; expiresInHours?: number | null; photoCap?: number | null }) =>
     request<AdminRoll>('/api/admin/rolls', { method: 'POST', body: JSON.stringify(input) }),
 
-  updateRoll: (id: string, patch: { closed?: boolean; name?: string; photoCap?: number }) =>
+  updateRoll: (id: string, patch: { closed?: boolean; name?: string; photoCap?: number | null }) =>
     request<AdminRoll>(`/api/admin/rolls/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
   deleteRoll: (id: string) =>

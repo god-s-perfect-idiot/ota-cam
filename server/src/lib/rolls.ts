@@ -5,7 +5,7 @@ export type RollStatus = 'open' | 'closed' | 'expired' | 'full';
 export function rollStatus(roll: Roll, now = new Date()): RollStatus {
   if (roll.closed) return 'closed';
   if (roll.expiresAt && new Date(roll.expiresAt) <= now) return 'expired';
-  if (roll.photoCount >= roll.photoCap) return 'full';
+  if (roll.photoCap !== null && roll.photoCount >= roll.photoCap) return 'full';
   return 'open';
 }
 
@@ -18,7 +18,9 @@ export function publicRollView(roll: Roll, now = new Date()) {
     status,
     acceptingPhotos: status === 'open',
     photoCount: roll.photoCount,
-    remaining: Math.max(0, roll.photoCap - roll.photoCount),
+    remaining:
+      roll.photoCap === null ? null : Math.max(0, roll.photoCap - roll.photoCount),
+    photoCap: roll.photoCap,
     expiresAt: roll.expiresAt,
   };
 }
@@ -29,7 +31,6 @@ export function adminRollView(roll: Roll, baseUrl: string, now = new Date()) {
     ...publicRollView(roll, now),
     id: roll.id,
     createdAt: roll.createdAt,
-    photoCap: roll.photoCap,
     closed: roll.closed,
     driveFolderUrl: roll.driveFolderUrl,
     shareUrl: `${baseUrl}/c/${roll.code}`,

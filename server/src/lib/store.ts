@@ -24,7 +24,8 @@ export interface Roll {
   /** ISO timestamp after which the camera stops accepting photos, or null. */
   expiresAt: string | null;
   closed: boolean;
-  photoCap: number;
+  /** Max exposures for this roll, or null for unlimited. */
+  photoCap: number | null;
   photoCount: number;
 }
 
@@ -162,11 +163,12 @@ class Store {
     return this.mutate((db) => {
       const roll = db.rolls.find((r) => r.id === rollId);
       if (!roll) return null;
-      if (roll.photoCount >= roll.photoCap) return null;
+      if (roll.photoCap !== null && roll.photoCount >= roll.photoCap) return null;
       roll.photoCount += 1;
       return {
         sequence: roll.photoCount,
-        remaining: Math.max(0, roll.photoCap - roll.photoCount),
+        remaining:
+          roll.photoCap === null ? Number.MAX_SAFE_INTEGER : Math.max(0, roll.photoCap - roll.photoCount),
       };
     });
   }
