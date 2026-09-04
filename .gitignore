@@ -1,5 +1,8 @@
 node_modules/
 dist/
+public/
+server/public/
+web/dist/
 data/
 .vercel/
 server/.test-data/
