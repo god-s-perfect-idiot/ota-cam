@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "fastify",
-  "buildCommand": "npm run build --workspace web && npm run build --workspace server",
-  "installCommand": "npm install",
+  "installCommand": "npm install --production=false",
+  "buildCommand": "npm run build",
   "functions": {
     "index.ts": {
       "maxDuration": 60,
