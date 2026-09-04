@@ -80,25 +80,44 @@ function load() {
   };
 }
 
-/** Local dev writes under the repo; Netlify Functions only allow /tmp. */
+/** True on Netlify Functions, Vercel Functions, or generic Lambda. */
+function isServerlessRuntime(): boolean {
+  return Boolean(
+    process.env.VERCEL ||
+      process.env.NETLIFY ||
+      process.env.AWS_LAMBDA_FUNCTION_NAME,
+  );
+}
+
+/** Local dev writes under the repo; serverless runtimes only allow /tmp. */
 function resolveDataDir(dataDir: string): string {
   if (path.isAbsolute(dataDir)) return dataDir;
-  if (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  if (isServerlessRuntime()) {
     return '/tmp/ota-cam-data';
   }
   return path.resolve(repoRoot, dataDir);
 }
 
 /**
- * Google OAuth redirect_uri is derived from this value. On Netlify, `URL` is the
- * site's canonical HTTPS origin — use it so a copied localhost .env doesn't break OAuth.
+ * Google OAuth redirect_uri is derived from this value. Prefer an explicit
+ * non-localhost PUBLIC_BASE_URL (custom domain). Otherwise use the platform
+ * URL so a copied localhost .env doesn't break OAuth on Netlify/Vercel.
  */
 function resolvePublicBaseUrl(configured: string): string {
-  const netlifyUrl = process.env.URL?.replace(/\/+$/, '');
-  if (netlifyUrl && (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME)) {
-    return netlifyUrl;
+  const cleaned = configured.replace(/\/+$/, '');
+  if (!isServerlessRuntime()) return cleaned;
+
+  if (cleaned && !/localhost|127\.0\.0\.1/.test(cleaned)) {
+    return cleaned;
   }
-  return configured.replace(/\/+$/, '');
+
+  const netlifyUrl = process.env.URL?.replace(/\/+$/, '');
+  if (netlifyUrl) return netlifyUrl;
+
+  const vercelHost = process.env.VERCEL_URL?.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  if (vercelHost) return `https://${vercelHost}`;
+
+  return cleaned;
 }
 
 export const config = load();

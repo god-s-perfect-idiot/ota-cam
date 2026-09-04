@@ -13,9 +13,10 @@ import { googleAuthRoutes } from './routes/googleAuth.js';
 
 const webDist = path.join(repoRoot, 'web', 'dist');
 
-/** pino-pretty is dev-only; bundled Netlify functions cannot resolve it. */
+/** pino-pretty is dev-only; bundled serverless functions cannot resolve it. */
 const usePrettyLogs =
   !config.isProduction &&
+  !process.env.VERCEL &&
   !process.env.NETLIFY &&
   !process.env.AWS_LAMBDA_FUNCTION_NAME;
 
