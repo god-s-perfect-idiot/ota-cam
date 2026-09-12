@@ -22,7 +22,6 @@ import { store } from '../lib/store.js';
 
 const createRollSchema = z.object({
   name: z.string().trim().min(1).max(80),
-  expiresInHours: z.coerce.number().int().min(1).max(24 * 30).nullish(),
   // null / omitted / 0 = unlimited exposures
   photoCap: z.preprocess(
     (value) => (value === '' || value === undefined ? null : value),
@@ -85,7 +84,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         message: parsed.error.issues[0]?.message ?? 'Invalid roll details.',
       });
     }
-    const { name, expiresInHours, photoCap } = parsed.data;
+    const { name, photoCap } = parsed.data;
 
     try {
       const folder = await createRollFolder(name);
@@ -96,9 +95,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         driveFolderId: folder.id,
         driveFolderUrl: folder.url,
         createdAt: new Date().toISOString(),
-        expiresAt: expiresInHours
-          ? new Date(Date.now() + expiresInHours * 3_600_000).toISOString()
-          : null,
+        expiresAt: null,
         closed: false,
         photoCap:
           photoCap === null || photoCap === 0

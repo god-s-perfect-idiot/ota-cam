@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { printReady, setPublicBaseUrl, startTunnel, waitForPort } from './lib/tunnel.mjs';
 
-const port = Number(process.env.TUNNEL_PORT ?? '5173');
+const port = Number(process.env.TUNNEL_PORT ?? '5555');
 
 async function main() {
   if (process.env.TUNNEL_SKIP_WAIT !== '1') {

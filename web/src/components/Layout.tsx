@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 export function Screen({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-full w-full items-center justify-center bg-film-black p-6">
+    <div className="texture-body flex h-full w-full items-center justify-center p-6">
       {children}
     </div>
   );

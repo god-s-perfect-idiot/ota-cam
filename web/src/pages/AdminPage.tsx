@@ -167,7 +167,6 @@ function NewRollForm({
   onError: (message: string) => void;
 }) {
   const [name, setName] = useState('');
-  const [hours, setHours] = useState('');
   const [cap, setCap] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -182,12 +181,10 @@ function NewRollForm({
           api
             .createRoll({
               name,
-              expiresInHours: hours ? Number(hours) : null,
               photoCap: cap.trim() ? Number(cap) : null,
             })
             .then(() => {
               setName('');
-              setHours('');
               setCap('');
               return onCreated();
             })
@@ -207,30 +204,17 @@ function NewRollForm({
             className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 outline-none focus:border-film-amber"
           />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Expires in (hours)" hint="blank = never">
-            <input
-              value={hours}
-              onChange={(event) => setHours(event.target.value)}
-              type="number"
-              min={1}
-              max={720}
-              placeholder="12"
-              className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 outline-none focus:border-film-amber"
-            />
-          </Field>
-          <Field label="Photo cap" hint="blank = uncapped">
-            <input
-              value={cap}
-              onChange={(event) => setCap(event.target.value)}
-              type="number"
-              min={1}
-              max={10000}
-              placeholder={String(defaultCap)}
-              className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 outline-none focus:border-film-amber"
-            />
-          </Field>
-        </div>
+        <Field label="Photo cap" hint="blank = uncapped · link never expires">
+          <input
+            value={cap}
+            onChange={(event) => setCap(event.target.value)}
+            type="number"
+            min={1}
+            max={10000}
+            placeholder={String(defaultCap)}
+            className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 outline-none focus:border-film-amber"
+          />
+        </Field>
         <button
           type="submit"
           disabled={saving || !name.trim()}
@@ -358,13 +342,11 @@ function RollCard({
 function statusLabel(roll: AdminRoll): string {
   switch (roll.status) {
     case 'open':
-      return roll.expiresAt
-        ? `open until ${new Date(roll.expiresAt).toLocaleString()}`
-        : 'open';
+      return 'open';
     case 'closed':
       return 'wound up';
     case 'expired':
-      return 'expired';
+      return 'open';
     case 'full':
       return 'roll finished';
   }

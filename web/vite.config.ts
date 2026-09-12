@@ -9,7 +9,7 @@ export default defineConfig({
   server: {
     // `--host` exposes the dev server on the LAN so a real phone can open it.
     host: true,
-    port: 5173,
+    port: 5555,
     proxy: {
       '/api': { target: API_TARGET, changeOrigin: true },
     },

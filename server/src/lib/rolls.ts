@@ -2,9 +2,9 @@ import type { Roll } from './store.js';
 
 export type RollStatus = 'open' | 'closed' | 'expired' | 'full';
 
-export function rollStatus(roll: Roll, now = new Date()): RollStatus {
+export function rollStatus(roll: Roll, _now = new Date()): RollStatus {
   if (roll.closed) return 'closed';
-  if (roll.expiresAt && new Date(roll.expiresAt) <= now) return 'expired';
+  // Share links are permanent; expiry is no longer enforced.
   if (roll.photoCap !== null && roll.photoCount >= roll.photoCap) return 'full';
   return 'open';
 }

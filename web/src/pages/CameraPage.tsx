@@ -22,13 +22,6 @@ export function CameraPage() {
     localStorage.getItem(SHOOTER_KEY),
   );
   const [stats, setStats] = useState<QueueStats | null>(null);
-  const [flashing, setFlashing] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [filmLook, setFilmLook] = useState(true);
-  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const camera = useCamera();
 
   useEffect(() => {
     let active = true;
@@ -60,42 +53,6 @@ export function CameraPage() {
       uploadQueue.detach();
     };
   }, [code]);
-
-  const flashNotice = useCallback((message: string) => {
-    setNotice(message);
-    if (noticeTimer.current) clearTimeout(noticeTimer.current);
-    noticeTimer.current = setTimeout(() => setNotice(null), 3200);
-  }, []);
-
-  const takePhoto = useCallback(async () => {
-    const video = camera.videoRef.current;
-    if (!video || !camera.ready || busy) return;
-
-    setBusy(true);
-    setFlashing(true);
-    setTimeout(() => setFlashing(false), 430);
-
-    try {
-      const blob = await captureFrame(video, { dateStamp: true, filmLook });
-      await uploadQueue.enqueue(blob, shooter);
-      if (navigator.vibrate) navigator.vibrate(18);
-    } catch (err) {
-      flashNotice(err instanceof Error ? err.message : 'Could not take the photo.');
-    } finally {
-      setTimeout(() => setBusy(false), 350);
-    }
-  }, [busy, camera, filmLook, flashNotice, shooter]);
-
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.code === 'Space' || event.code === 'Enter') {
-        event.preventDefault();
-        void takePhoto();
-      }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [takePhoto]);
 
   if (loadError) {
     return (
@@ -152,25 +109,61 @@ export function CameraPage() {
     );
   }
 
+  return <CameraViewfinder shooter={shooter} stats={stats} />;
+}
+
+function CameraViewfinder({
+  shooter,
+  stats,
+}: {
+  shooter: string;
+  stats: QueueStats | null;
+}) {
+  const [flashing, setFlashing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [filmLook, setFilmLook] = useState(true);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const camera = useCamera();
+
+  const flashNotice = useCallback((message: string) => {
+    setNotice(message);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(null), 3200);
+  }, []);
+
+  const takePhoto = useCallback(async () => {
+    const video = camera.videoRef.current;
+    if (!video || !camera.ready || busy) return;
+
+    setBusy(true);
+    setFlashing(true);
+    setTimeout(() => setFlashing(false), 430);
+
+    try {
+      const blob = await captureFrame(video, { dateStamp: true, filmLook });
+      await uploadQueue.enqueue(blob, shooter);
+      if (navigator.vibrate) navigator.vibrate(18);
+    } catch (err) {
+      flashNotice(err instanceof Error ? err.message : 'Could not take the photo.');
+    } finally {
+      setTimeout(() => setBusy(false), 350);
+    }
+  }, [busy, camera, filmLook, flashNotice, shooter]);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.code === 'Space' || event.code === 'Enter') {
+        event.preventDefault();
+        void takePhoto();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [takePhoto]);
+
   return (
     <div className="texture-body relative flex h-full w-full flex-col">
-      {/* Top metal strip — brand plate */}
-      <div className="texture-metal relative z-10 shrink-0 px-4 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            {/* Viewfinder bump */}
-            <div className="h-[18px] w-[28px] rounded-sm bg-gradient-to-b from-[#0a0806] to-[#1a1612] shadow-[inset_0_1px_3px_rgba(0,0,0,0.8)]" />
-            <div>
-              <p className="font-stamp text-[10px] uppercase tracking-[0.25em] text-film-cream/50">
-                ota-cam
-              </p>
-              <p className="font-stamp text-xs tracking-wide text-film-amber">{roll.name}</p>
-            </div>
-          </div>
-          <QueueIndicator stats={stats} onRetry={() => void uploadQueue.retryFailed()} />
-        </div>
-      </div>
-
       {/* Viewfinder housing */}
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden px-3 pt-3">
         {/* Outer bezel — locked to camera sensor aspect ratio */}
@@ -187,12 +180,24 @@ export function CameraPage() {
           {/* Inner recess */}
           <div className="relative flex flex-1 overflow-hidden rounded-[5px] bg-[#0a0806] shadow-[inset_0_3px_10px_rgba(0,0,0,0.8)]">
             <video
-              ref={camera.videoRef}
-              className="h-full w-full object-contain"
+              ref={camera.bindVideo}
+              className="h-full w-full object-contain bg-black"
               playsInline
               muted
               autoPlay
             />
+
+            {filmLook && (
+              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+                <div className="film-look-warm absolute inset-0" />
+                <div className="film-look-grain absolute inset-0" />
+                <div className="film-look-vignette absolute inset-0" />
+              </div>
+            )}
+
+            <div className="absolute right-3 top-3 z-10">
+              <QueueIndicator stats={stats} onRetry={() => void uploadQueue.retryFailed()} />
+            </div>
 
             {camera.error && (
               <div className="absolute inset-0 flex items-center justify-center bg-film-black/95 p-6">
@@ -218,8 +223,8 @@ export function CameraPage() {
               </div>
             )}
 
-            {/* Viewfinder overlays */}
-            <div className="grain-overlay viewfinder-vignette pointer-events-none absolute inset-0">
+            {/* Viewfinder chrome */}
+            <div className="pointer-events-none absolute inset-0">
               {/* Corner brackets */}
               <div className="absolute inset-4">
                 <span className="absolute left-0 top-0 h-4 w-4 border-l-2 border-t-2 border-film-cream/20" />
@@ -255,32 +260,13 @@ export function CameraPage() {
             )}
           </div>
         </div>
-
-        {/* Lens ring label below viewfinder */}
-        <div className="mt-1.5 flex items-center justify-center gap-3 pb-1">
-          <span className="font-stamp text-[8px] uppercase tracking-[0.3em] text-film-cream/25">
-            35mm
-          </span>
-          <span className="h-[3px] w-[3px] rounded-full bg-film-cream/15" />
-          <span className="font-stamp text-[8px] uppercase tracking-[0.3em] text-film-cream/25">
-            f/2.8
-          </span>
-        </div>
       </div>
 
-      {/* Control panel — leather texture */}
-      <div className="texture-leather relative shrink-0 px-5 pb-5 pt-4 shadow-[0_-4px_16px_rgba(0,0,0,0.4)]">
-        {/* Stitching detail along top edge */}
-        <div className="absolute left-4 right-4 top-2 flex justify-between">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <span key={i} className="h-[3px] w-[3px] rounded-full bg-film-cream/[0.06]" />
-          ))}
-        </div>
-
-        {/* Shutter row */}
-        <div className="flex items-end justify-between px-2 pt-2">
+      {/* Control panel */}
+      <div className="relative shrink-0 px-5 pb-5 pt-4">
+        <div className="flex items-end justify-between px-2">
           <div className="flex items-end gap-4">
-            <FlipCameraButton onClick={camera.flipCamera} />
+            <FlipCameraButton facing={camera.facing} onClick={camera.flipCamera} />
             {camera.torchAvailable && (
               <VintageDial
                 label="flash"

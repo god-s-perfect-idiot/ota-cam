@@ -21,7 +21,7 @@ export interface Roll {
   driveFolderId: string;
   driveFolderUrl: string;
   createdAt: string;
-  /** ISO timestamp after which the camera stops accepting photos, or null. */
+  /** Legacy field; share links no longer expire. Always null for new rolls. */
   expiresAt: string | null;
   closed: boolean;
   /** Max exposures for this roll, or null for unlimited. */

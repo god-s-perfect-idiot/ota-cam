@@ -242,7 +242,7 @@ describe('POST /api/rolls/:code/photos', () => {
     expect(uploadPhoto).not.toHaveBeenCalled();
   });
 
-  it('refuses an expired roll', async () => {
+  it('still accepts photos when a legacy expiresAt has passed', async () => {
     await seedRoll({ expiresAt: new Date(Date.now() - 1000).toISOString() });
     const response = await app.inject({
       method: 'POST',
@@ -252,8 +252,7 @@ describe('POST /api/rolls/:code/photos', () => {
         { field: 'photo', filename: 'a.jpg', contentType: 'image/jpeg', content: jpeg() },
       ),
     });
-    expect(response.statusCode).toBe(409);
-    expect(response.json().error).toBe('expired');
+    expect(response.statusCode).toBe(200);
   });
 
   it('releases the reserved slot when Drive fails, so the shot can be retried', async () => {

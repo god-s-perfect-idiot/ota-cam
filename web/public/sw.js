@@ -5,7 +5,7 @@
  * by the app's own upload queue, which handles retries far better than a
  * service worker guessing at replay semantics.
  */
-const CACHE = 'ota-cam-shell-v1';
+const CACHE = 'ota-cam-shell-v2';
 const SHELL = ['/', '/icon.svg', '/icon-192.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

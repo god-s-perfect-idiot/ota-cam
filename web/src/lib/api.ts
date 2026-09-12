@@ -95,7 +95,7 @@ export const api = {
 
   logout: () => request<{ ok: true }>('/api/admin/logout', { method: 'POST' }),
 
-  createRoll: (input: { name: string; expiresInHours?: number | null; photoCap?: number | null }) =>
+  createRoll: (input: { name: string; photoCap?: number | null }) =>
     request<AdminRoll>('/api/admin/rolls', { method: 'POST', body: JSON.stringify(input) }),
 
   updateRoll: (id: string, patch: { closed?: boolean; name?: string; photoCap?: number | null }) =>

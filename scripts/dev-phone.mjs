@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { printReady, setPublicBaseUrl, startTunnel, waitForPort } from './lib/tunnel.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const vitePort = 5173;
+const vitePort = 5555;
 const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 /** @type {Array<{ close?: () => void, kill?: (signal: NodeJS.Signals) => void }>} */

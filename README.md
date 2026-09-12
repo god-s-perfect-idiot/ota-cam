@@ -65,13 +65,13 @@ The server requests only the `drive.file` scope — access to files **this app c
 
 ### 3. Run
 
-**Development** (hot reload, Vite on `:5173` proxying API to `:8787`):
+**Development** (hot reload, Vite on `:5555` proxying API to `:8787`):
 
 ```bash
 npm run dev
 ```
 
-Open **http://localhost:5173/admin** on your laptop.
+Open **http://localhost:5555/admin** on your laptop.
 
 **Production** (single server serves the built UI + API):
 
@@ -106,10 +106,10 @@ Options:
 
 Set `PUBLIC_BASE_URL` in `.env` to your public HTTPS URL **before** connecting Google Drive, because the OAuth redirect URI must match exactly.
 
-For local dev with a phone, run Vite with `--host` (already configured) and tunnel port `5173`:
+For local dev with a phone, run Vite with `--host` (already configured) and tunnel port `5555`:
 
 ```bash
-npx cloudflared tunnel --url http://localhost:5173
+npx cloudflared tunnel --url http://localhost:5555
 ```
 
 Update `PUBLIC_BASE_URL` and add the tunnel callback URL to Google Cloud credentials.
