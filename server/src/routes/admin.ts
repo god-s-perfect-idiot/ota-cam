@@ -65,14 +65,14 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     if (!isAdmin(request)) {
       return reply.send({ authenticated: false, googleConfigured: config.googleConfigured });
     }
-    const host = store.getHost();
+    const host = await store.getHost();
     return reply.send({
       authenticated: true,
       googleConfigured: config.googleConfigured,
       publicBaseUrl: config.PUBLIC_BASE_URL,
       defaultPhotoCap: config.DEFAULT_ROLL_PHOTO_CAP,
       host: host ? { email: host.email, connectedAt: host.connectedAt } : null,
-      rolls: store.listRolls().map((roll) => adminRollView(roll, config.PUBLIC_BASE_URL)),
+      rolls: (await store.listRolls()).map((roll) => adminRollView(roll, config.PUBLIC_BASE_URL)),
     });
   });
 
@@ -157,7 +157,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
   );
 
   app.post('/api/admin/disconnect', { preHandler: requireAdmin }, async (request, reply) => {
-    const host = store.getHost();
+    const host = await store.getHost();
     if (host) {
       try {
         await revokeHostAccess(decryptSecret(host.refreshTokenEnc));

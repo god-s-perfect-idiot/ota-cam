@@ -128,7 +128,13 @@ Update `PUBLIC_BASE_URL` and add the tunnel callback URL to Google Cloud credent
 | `MAX_UPLOAD_BYTES` | no | Max photo size (default 15 MB) |
 | `DEFAULT_ROLL_PHOTO_CAP` | no | Safety cap per roll (default 500) |
 | `UPLOAD_RATE_LIMIT_PER_MINUTE` | no | Per-IP upload rate limit (default 30) |
-| `DATA_DIR` | no | Where `db.json` and the photo log live (default `./data`) |
+| `DATA_DIR` | no | Where `db.json` and the photo log live locally (default `./data`). Ignored on Vercel when Firestore is configured. |
+| `FIREBASE_SERVICE_ACCOUNT_PATH` | for deploy* | Path to Firebase Admin SDK JSON (local). |
+| `FIREBASE_PROJECT_ID` | for deploy* | Firebase project id (e.g. `ota-cam`). |
+| `FIREBASE_CLIENT_EMAIL` | for deploy* | Service account email. |
+| `FIREBASE_PRIVATE_KEY` | for deploy* | Service account private key (keep `\n` escapes on Vercel). |
+
+\*On Vercel/Netlify, set the three `FIREBASE_*` credential vars (or the JSON path locally). Without them, rolls are stored under `/tmp` and disappear on every deploy.
 
 ## Security model
 

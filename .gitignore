@@ -14,3 +14,7 @@ server/.test-data/
 *.log
 coverage/
 certs/
+# Firebase / Google service account keys — never commit these
+*firebase-adminsdk*.json
+*-credentials.json
+serviceAccount*.json

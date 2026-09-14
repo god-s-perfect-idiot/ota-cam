@@ -12,6 +12,11 @@ export default defineConfig({
       DATA_DIR: './server/.test-data',
       PUBLIC_BASE_URL: 'http://localhost:8787',
       LOG_LEVEL: 'silent',
+      // Never hit real Firestore during unit tests.
+      FIREBASE_SERVICE_ACCOUNT_PATH: '',
+      FIREBASE_PROJECT_ID: '',
+      FIREBASE_CLIENT_EMAIL: '',
+      FIREBASE_PRIVATE_KEY: '',
     },
   },
 });

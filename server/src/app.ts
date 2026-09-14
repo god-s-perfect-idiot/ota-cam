@@ -56,8 +56,9 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   app.get('/api/health', async () => ({
     ok: true,
-    driveConnected: Boolean(store.getHost()),
+    driveConnected: Boolean(await store.getHost()),
     googleConfigured: config.googleConfigured,
+    store: store.backend(),
   }));
 
   await app.register(adminRoutes);

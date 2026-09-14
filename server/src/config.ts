@@ -31,6 +31,16 @@ const schema = z.object({
 
   DATA_DIR: z.string().default('./data'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+
+  /**
+   * Cloud Firestore (recommended on Vercel/Netlify). When set, rolls + host
+   * credentials persist across deploys. Prefer the three discrete vars on
+   * Vercel; locally you can point at the downloaded service-account JSON.
+   */
+  FIREBASE_PROJECT_ID: z.string().min(1).optional(),
+  FIREBASE_CLIENT_EMAIL: z.string().email().optional(),
+  FIREBASE_PRIVATE_KEY: z.string().min(1).optional(),
+  FIREBASE_SERVICE_ACCOUNT_PATH: z.string().min(1).optional(),
 });
 
 /**

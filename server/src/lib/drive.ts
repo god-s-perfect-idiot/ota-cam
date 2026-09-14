@@ -98,8 +98,8 @@ export async function revokeHostAccess(refreshToken: string): Promise<void> {
 
 let cached: { refreshTokenEnc: string; drive: drive_v3.Drive } | null = null;
 
-function driveClient(): drive_v3.Drive {
-  const host = store.getHost();
+async function driveClient(): Promise<drive_v3.Drive> {
+  const host = await store.getHost();
   if (!host) throw new DriveNotConnectedError();
   if (cached?.refreshTokenEnc === host.refreshTokenEnc) return cached.drive;
 
@@ -149,11 +149,11 @@ function rethrowAuthErrors(err: unknown): never {
 }
 
 async function ensureRootFolder(): Promise<string> {
-  const host = store.getHost();
+  const host = await store.getHost();
   if (!host) throw new DriveNotConnectedError();
   if (host.rootFolderId) return host.rootFolderId;
 
-  const drive = driveClient();
+  const drive = await driveClient();
   const { data } = await drive.files.create({
     requestBody: {
       name: ROOT_FOLDER_NAME,
@@ -167,7 +167,7 @@ async function ensureRootFolder(): Promise<string> {
 }
 
 async function createRollFolderOnce(name: string, parent: string): Promise<{ id: string; url: string }> {
-  const drive = driveClient();
+  const drive = await driveClient();
   const { data } = await drive.files.create({
     requestBody: {
       name,
@@ -192,7 +192,7 @@ export async function createRollFolder(
   } catch (err) {
     // Stale rootFolderId (common after reconnect / ephemeral serverless storage).
     if (isNotFoundError(err)) {
-      const host = store.getHost();
+      const host = await store.getHost();
       if (host?.rootFolderId) {
         await store.setHost({ ...host, rootFolderId: null });
         invalidateDriveCache();
@@ -217,7 +217,7 @@ export async function uploadPhoto(options: {
 }): Promise<{ fileId: string }> {
   const { folderId, filename, mimeType, body, takenAt } = options;
   try {
-    const { data } = await driveClient().files.create({
+    const { data } = await (await driveClient()).files.create({
       requestBody: {
         name: filename,
         parents: [folderId],
@@ -237,7 +237,7 @@ export async function uploadPhoto(options: {
 
 export async function deleteDriveFile(fileId: string): Promise<void> {
   try {
-    await driveClient().files.delete({ fileId });
+    await (await driveClient()).files.delete({ fileId });
   } catch (err) {
     rethrowAuthErrors(err);
   }

@@ -38,7 +38,7 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
     if (!isValidRollCode(code)) {
       return reply.code(404).send({ error: 'not_found', message: 'No such camera.' });
     }
-    const roll = store.findRollByCode(code);
+    const roll = await store.findRollByCode(code);
     if (!roll) {
       return reply.code(404).send({ error: 'not_found', message: 'No such camera.' });
     }
@@ -60,7 +60,7 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
       if (!isValidRollCode(code)) {
         return reply.code(404).send({ error: 'not_found', message: 'No such camera.' });
       }
-      const roll = store.findRollByCode(code);
+      const roll = await store.findRollByCode(code);
       if (!roll) {
         return reply.code(404).send({ error: 'not_found', message: 'No such camera.' });
       }
@@ -76,7 +76,7 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
         });
       }
 
-      if (!store.getHost()) {
+      if (!(await store.getHost())) {
         return reply.code(503).send({
           error: 'drive_not_connected',
           message: 'The camera owner has not connected Google Drive yet.',

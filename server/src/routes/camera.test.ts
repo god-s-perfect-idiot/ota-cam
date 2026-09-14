@@ -149,7 +149,7 @@ describe('POST /api/rolls/:code/photos', () => {
       folderId: 'folder-1',
       mimeType: 'image/jpeg',
     });
-    expect(store.findRollById('roll-1')?.photoCount).toBe(1);
+    expect((await store.findRollById('roll-1'))?.photoCount).toBe(1);
   });
 
   it('rejects a non-image even when it claims to be a JPEG', async () => {
@@ -204,7 +204,7 @@ describe('POST /api/rolls/:code/photos', () => {
     expect(second.json()).toMatchObject({ duplicate: true });
     // The photo must not be stored or counted twice.
     expect(uploadPhoto).toHaveBeenCalledOnce();
-    expect(store.findRollById('roll-1')?.photoCount).toBe(1);
+    expect((await store.findRollById('roll-1'))?.photoCount).toBe(1);
   });
 
   it('stops accepting photos once the cap is reached', async () => {
@@ -270,7 +270,7 @@ describe('POST /api/rolls/:code/photos', () => {
 
     // 502 signals the client queue that retrying is worthwhile.
     expect(response.statusCode).toBe(502);
-    expect(store.findRollById('roll-1')?.photoCount).toBe(0);
+    expect((await store.findRollById('roll-1'))?.photoCount).toBe(0);
   });
 
   it('404s for an unknown roll without touching Drive', async () => {
