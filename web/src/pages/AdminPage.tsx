@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { api, ApiError, type AdminRoll, type AdminStatus } from '../lib/api.js';
+import { CameraQr } from '../components/CameraQr.js';
 import { Card, Screen, Spinner } from '../components/Layout.js';
 
 export function AdminPage() {
@@ -273,8 +274,9 @@ function RollCard({
     try {
       setQr(
         await QRCode.toDataURL(roll.shareUrl, {
-          margin: 1,
-          width: 320,
+          margin: 2,
+          width: 360,
+          errorCorrectionLevel: 'M',
           color: { dark: '#0b0a09', light: '#f6ead6' },
         }),
       );
@@ -330,9 +332,8 @@ function RollCard({
       </div>
 
       {qr && (
-        <div className="mt-4 flex flex-col items-center gap-2">
-          <img src={qr} alt={`QR code linking to ${roll.name}`} className="w-44 rounded-xl" />
-          <p className="text-[11px] text-film-cream/45">Guests scan this to start shooting</p>
+        <div className="mt-4 flex justify-center">
+          <CameraQr src={qr} label={roll.name} code={roll.code} />
         </div>
       )}
     </Card>

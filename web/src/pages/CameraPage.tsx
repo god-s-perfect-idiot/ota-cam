@@ -7,7 +7,7 @@ import { uploadQueue, type QueueStats } from '../lib/uploadQueue.js';
 import { useCamera } from '../lib/useCamera.js';
 import { ShutterButton } from '../components/ShutterButton.js';
 import { FlipCameraButton } from '../components/FlipCameraButton.js';
-import { VintageDial } from '../components/VintageDial.js';
+import { ChromeDialSwitch } from '../components/ChromeDialSwitch.js';
 import { FilterDial } from '../components/FilterDial.js';
 import { FilmCounter } from '../components/FilmCounter.js';
 import { QueueIndicator } from '../components/QueueIndicator.js';
@@ -321,10 +321,11 @@ function CameraViewfinder({
           <div className="flex items-end gap-4">
             <FlipCameraButton facing={camera.facing} onClick={camera.flipCamera} />
             {camera.torchAvailable && (
-              <VintageDial
+              <ChromeDialSwitch
                 label="flash"
                 active={camera.torchOn}
                 onClick={() => void camera.toggleTorch()}
+                ariaLabel={camera.torchOn ? 'Turn flash off' : 'Turn flash on'}
               />
             )}
           </div>
