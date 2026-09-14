@@ -2,11 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, ApiError, type PublicRoll } from '../lib/api.js';
 import { captureFrame } from '../lib/capture.js';
+import { DEFAULT_FILTER, type FilterId } from '../lib/filters.js';
 import { uploadQueue, type QueueStats } from '../lib/uploadQueue.js';
 import { useCamera } from '../lib/useCamera.js';
 import { ShutterButton } from '../components/ShutterButton.js';
 import { FlipCameraButton } from '../components/FlipCameraButton.js';
 import { VintageDial } from '../components/VintageDial.js';
+import { FilterDial } from '../components/FilterDial.js';
 import { FilmCounter } from '../components/FilmCounter.js';
 import { QueueIndicator } from '../components/QueueIndicator.js';
 import { ShooterNamePrompt } from '../components/ShooterNamePrompt.js';
@@ -112,6 +114,63 @@ export function CameraPage() {
   return <CameraViewfinder shooter={shooter} stats={stats} />;
 }
 
+function FilterPreview({ filter }: { filter: FilterId }) {
+  if (filter === 'off') return null;
+
+  if (filter === 'film') {
+    return (
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="film-look-warm absolute inset-0" />
+        <div className="film-look-grain absolute inset-0" />
+        <div className="film-look-vignette absolute inset-0" />
+      </div>
+    );
+  }
+
+  if (filter === 'noir') {
+    return (
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="filter-noir-grain absolute inset-0" />
+        <div className="filter-noir-vignette absolute inset-0" />
+      </div>
+    );
+  }
+
+  if (filter === 'sepia') {
+    return (
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="film-look-grain absolute inset-0" />
+        <div className="filter-sepia-vignette absolute inset-0" />
+      </div>
+    );
+  }
+
+  if (filter === 'vivid') {
+    return (
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="filter-vivid-sat absolute inset-0" />
+        <div className="filter-vivid-warm absolute inset-0" />
+        <div className="filter-vivid-pop absolute inset-0" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+      <div className="film-look-grain absolute inset-0 opacity-[0.08]" />
+      <div className="filter-cool-wash absolute inset-0" />
+      <div className="filter-cool-tint absolute inset-0" />
+      <div className="filter-cool-vignette absolute inset-0" />
+    </div>
+  );
+}
+
+function videoFilterClass(filter: FilterId): string {
+  if (filter === 'noir') return 'filter-noir';
+  if (filter === 'sepia') return 'filter-sepia';
+  return '';
+}
+
 function CameraViewfinder({
   shooter,
   stats,
@@ -122,7 +181,7 @@ function CameraViewfinder({
   const [flashing, setFlashing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [filmLook, setFilmLook] = useState(true);
+  const [filter, setFilter] = useState<FilterId>(DEFAULT_FILTER);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const camera = useCamera();
 
@@ -141,7 +200,7 @@ function CameraViewfinder({
     setTimeout(() => setFlashing(false), 430);
 
     try {
-      const blob = await captureFrame(video, { dateStamp: true, filmLook });
+      const blob = await captureFrame(video, { dateStamp: true, filter });
       await uploadQueue.enqueue(blob, shooter);
       if (navigator.vibrate) navigator.vibrate(18);
     } catch (err) {
@@ -149,7 +208,7 @@ function CameraViewfinder({
     } finally {
       setTimeout(() => setBusy(false), 350);
     }
-  }, [busy, camera, filmLook, flashNotice, shooter]);
+  }, [busy, camera, filter, flashNotice, shooter]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -181,19 +240,13 @@ function CameraViewfinder({
           <div className="relative flex flex-1 overflow-hidden rounded-[5px] bg-[#0a0806] shadow-[inset_0_3px_10px_rgba(0,0,0,0.8)]">
             <video
               ref={camera.bindVideo}
-              className="h-full w-full object-contain bg-black"
+              className={`h-full w-full object-contain bg-black ${videoFilterClass(filter)}`}
               playsInline
               muted
               autoPlay
             />
 
-            {filmLook && (
-              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-                <div className="film-look-warm absolute inset-0" />
-                <div className="film-look-grain absolute inset-0" />
-                <div className="film-look-vignette absolute inset-0" />
-              </div>
-            )}
+            <FilterPreview filter={filter} />
 
             <div className="absolute right-3 top-3 z-10">
               <QueueIndicator stats={stats} onRetry={() => void uploadQueue.retryFailed()} />
@@ -278,12 +331,8 @@ function CameraViewfinder({
 
           <ShutterButton disabled={!camera.ready || busy} onPress={() => void takePhoto()} />
 
-          <div className="flex flex-col items-center gap-1">
-            <VintageDial
-              label="vintage"
-              active={filmLook}
-              onClick={() => setFilmLook((v) => !v)}
-            />
+          <div className="flex flex-col items-center gap-2">
+            <FilterDial value={filter} onChange={setFilter} />
             <FilmCounter count={stats?.shot ?? 0} />
           </div>
         </div>

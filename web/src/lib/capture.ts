@@ -1,74 +1,12 @@
+import { applyCameraFilter, type FilterId } from './filters.js';
+
 /** Longest edge of the saved photo. Keeps party uploads to a few MB each. */
 const MAX_EDGE = 2560;
 const JPEG_QUALITY = 0.9;
 
 export interface CaptureOptions {
   dateStamp: boolean;
-  filmLook: boolean;
-}
-
-let noiseTile: HTMLCanvasElement | null = null;
-
-/**
- * Pre-renders a tile of monochrome noise once. Perturbing every pixel of a
- * 12-megapixel frame in JavaScript is far too slow for a responsive shutter,
- * so the grain is composited as a repeating pattern instead.
- */
-function getNoiseTile(): HTMLCanvasElement {
-  if (noiseTile) return noiseTile;
-  const size = 128;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d')!;
-  const image = ctx.createImageData(size, size);
-  for (let i = 0; i < image.data.length; i += 4) {
-    const value = 110 + Math.random() * 36;
-    image.data[i] = value;
-    image.data[i + 1] = value;
-    image.data[i + 2] = value;
-    image.data[i + 3] = 255;
-  }
-  ctx.putImageData(image, 0, 0);
-  noiseTile = canvas;
-  return canvas;
-}
-
-function applyFilmLook(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-  ctx.save();
-
-  ctx.globalCompositeOperation = 'overlay';
-  ctx.globalAlpha = 0.11;
-  const pattern = ctx.createPattern(getNoiseTile(), 'repeat');
-  if (pattern) {
-    ctx.fillStyle = pattern;
-    ctx.fillRect(0, 0, width, height);
-  }
-
-  // Warm the midtones the way cheap consumer film stock does.
-  ctx.globalCompositeOperation = 'soft-light';
-  ctx.globalAlpha = 0.18;
-  ctx.fillStyle = '#ff9a3c';
-  ctx.fillRect(0, 0, width, height);
-
-  // Vignette from a plastic lens.
-  ctx.globalCompositeOperation = 'multiply';
-  ctx.globalAlpha = 1;
-  const radius = Math.hypot(width, height) / 2;
-  const vignette = ctx.createRadialGradient(
-    width / 2,
-    height / 2,
-    radius * 0.55,
-    width / 2,
-    height / 2,
-    radius,
-  );
-  vignette.addColorStop(0, 'rgba(255,255,255,1)');
-  vignette.addColorStop(1, 'rgba(120,105,95,1)');
-  ctx.fillStyle = vignette;
-  ctx.fillRect(0, 0, width, height);
-
-  ctx.restore();
+  filter: FilterId;
 }
 
 /** The orange date burn-in that every disposable camera stamped on the negative. */
@@ -118,7 +56,7 @@ export async function captureFrame(
   if (!ctx) throw new Error('This browser cannot process the photo.');
 
   ctx.drawImage(video, 0, 0, width, height);
-  if (options.filmLook) applyFilmLook(ctx, width, height);
+  applyCameraFilter(ctx, width, height, options.filter);
   if (options.dateStamp) drawDateStamp(ctx, width, height);
 
   const blob = await new Promise<Blob | null>((resolve) =>
