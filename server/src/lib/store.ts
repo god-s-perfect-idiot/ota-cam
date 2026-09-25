@@ -56,10 +56,11 @@ const PHOTOS_COL = 'photos';
 /**
  * Durable store for host + rolls.
  *
- * - Local / tests: JSON file under DATA_DIR (fast, no network).
- * - Deployed (Vercel): Cloud Firestore when Firebase env is set, so cameras
- *   survive deploys. Serverless /tmp is ephemeral and must not be the source
- *   of truth.
+ * - Tests / no Firebase env: JSON file under DATA_DIR.
+ * - When FIREBASE_* is set (local or Vercel): Cloud Firestore. Cameras must
+ *   survive deploys; serverless /tmp is ephemeral and must not be source of truth.
+ * - First boot after enabling Firebase: if Firestore is empty but a local
+ *   db.json exists, that file is imported once so rolls are not abandoned.
  */
 class Store {
   private db: Database = structuredClone(EMPTY);
@@ -83,6 +84,7 @@ class Store {
       this.useFirestore = firebaseConfigured() && config.NODE_ENV !== 'test';
       if (this.useFirestore) {
         await this.loadFromFirestore();
+        await this.maybeImportLocalFile();
         return;
       }
       await fs.mkdir(config.dataDir, { recursive: true });
@@ -106,6 +108,47 @@ class Store {
     const host = hostSnap.exists ? (hostSnap.data() as HostAccount) : null;
     const rolls = rollsSnap.docs.map((doc) => doc.data() as Roll);
     this.db = { version: 1, host, rolls };
+  }
+
+  /**
+   * One-shot cutover: when Firebase was enabled after local use, Firestore may
+   * only have a stub host (or nothing) while the real cameras still live in
+   * data/db.json. Import that file so rolls are not silently dropped.
+   */
+  private async maybeImportLocalFile(): Promise<void> {
+    let local: Database;
+    try {
+      const raw = await fs.readFile(this.dbPath, 'utf8');
+      local = { ...structuredClone(EMPTY), ...(JSON.parse(raw) as Database) };
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
+      throw err;
+    }
+
+    const stubHost =
+      !this.db.host ||
+      this.db.host.email === 'host@example.com' ||
+      !this.db.host.refreshTokenEnc;
+    const missingRolls = this.db.rolls.length === 0 && local.rolls.length > 0;
+    if (!stubHost && !missingRolls) return;
+
+    const firestore = getDb();
+    const nextHost = stubHost && local.host ? local.host : this.db.host;
+    const nextRolls =
+      missingRolls ? local.rolls : this.db.rolls;
+
+    if (stubHost && nextHost) {
+      await firestore.doc(HOST_DOC).set(nextHost);
+    }
+    if (missingRolls) {
+      const batch = firestore.batch();
+      for (const roll of nextRolls) {
+        batch.set(firestore.collection(ROLLS_COL).doc(roll.id), roll);
+      }
+      await batch.commit();
+    }
+
+    this.db = { version: 1, host: nextHost, rolls: nextRolls };
   }
 
   /** Re-read from Firestore so warm serverless instances see peer writes. */
