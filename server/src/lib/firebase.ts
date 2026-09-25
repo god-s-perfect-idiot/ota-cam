@@ -7,18 +7,26 @@ import { config, repoRoot } from '../config.js';
 let app: App | null = null;
 let db: Firestore | null = null;
 
-function loadServiceAccount():
+/**
+ * Hosting UIs and shells mangle PEMs: wrapping quotes, literal `\n`, or
+ * doubled escapes. Normalize before handing the key to firebase-admin.
+ */
+function normalizePrivateKey(key: string): string {
+  let k = key.trim();
+  if (
+    (k.startsWith('"') && k.endsWith('"')) ||
+    (k.startsWith("'") && k.endsWith("'"))
+  ) {
+    k = k.slice(1, -1).trim();
+  }
+  // `\\\\n` (double-escaped) → `\\n` → real newline.
+  k = k.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r\n/g, '\n');
+  return k;
+}
+
+function loadFromServiceAccountFile():
   | { projectId: string; clientEmail: string; privateKey: string }
   | null {
-  if (config.FIREBASE_PROJECT_ID && config.FIREBASE_CLIENT_EMAIL && config.FIREBASE_PRIVATE_KEY) {
-    return {
-      projectId: config.FIREBASE_PROJECT_ID,
-      clientEmail: config.FIREBASE_CLIENT_EMAIL,
-      // Vercel / dotenv often store the key with literal \n sequences.
-      privateKey: config.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    };
-  }
-
   const relative = config.FIREBASE_SERVICE_ACCOUNT_PATH;
   if (!relative) return null;
   const filePath = path.isAbsolute(relative) ? relative : path.resolve(repoRoot, relative);
@@ -36,8 +44,27 @@ function loadServiceAccount():
   return {
     projectId: raw.project_id,
     clientEmail: raw.client_email,
-    privateKey: raw.private_key,
+    privateKey: normalizePrivateKey(raw.private_key),
   };
+}
+
+function loadServiceAccount():
+  | { projectId: string; clientEmail: string; privateKey: string }
+  | null {
+  // Prefer the JSON file when present — PEM-in-env is fragile across
+  // dotenv / Vercel / Netlify. Discrete vars are for serverless only.
+  const fromFile = loadFromServiceAccountFile();
+  if (fromFile) return fromFile;
+
+  if (config.FIREBASE_PROJECT_ID && config.FIREBASE_CLIENT_EMAIL && config.FIREBASE_PRIVATE_KEY) {
+    return {
+      projectId: config.FIREBASE_PROJECT_ID,
+      clientEmail: config.FIREBASE_CLIENT_EMAIL,
+      privateKey: normalizePrivateKey(config.FIREBASE_PRIVATE_KEY),
+    };
+  }
+
+  return null;
 }
 
 /** True when Firebase env is present (Firestore becomes the durable store). */
